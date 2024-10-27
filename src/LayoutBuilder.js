@@ -3,7 +3,7 @@ import DocMeasure from './DocMeasure';
 import DocPreprocessor from './DocPreprocessor';
 import DocumentContext from './DocumentContext';
 import { getNodeId, stringifyNode } from './helpers/node';
-import { offsetVector, pack, clone, getPathValue, updathPathValue } from './helpers/tools';
+import { offsetVector, pack, clone, updathPathValue } from './helpers/tools';
 import { isNumber, isString, isValue } from './helpers/variableType';
 import Line from './Line';
 import PageElementWriter from './PageElementWriter';
@@ -204,8 +204,7 @@ class LayoutBuilder {
 			stretchedHeights.forEach(stretchedHeight => {
 				const path = stretchedHeight[0];
 				const value = stretchedHeight[1];
-				// const nodeHeights = getPathValue(docStructure, stretchedHeightPath);
-				updathPathValue(this.docStructureCopy, path, value)
+				updathPathValue(this.docStructureCopy, path, value);
 			});
 
 			//generate the layout doc again with structure copy
@@ -1048,11 +1047,11 @@ class LayoutBuilder {
 						//manage row span
 						if(cell.rowSpan != null && cell.rowSpan > 1) {
 							for(let rowSpanI = 1; rowSpanI < cell.rowSpan; rowSpanI++){
-								cellHeight += node.table.rowsHeight[rowSpanI].height
+								cellHeight += node.table.rowsHeight[rowSpanI].height;
 							}
 						}
 
-						browseTheStructure(cell, cellHeight, colWidth, concatPath(path, 'table.body[' + rowI + '][' + cellI + ']'))
+						browseTheStructure(cell, cellHeight, colWidth, concatPath(path, 'table.body[' + rowI + '][' + cellI + ']'));
 					});
 				});
 			} else if (node.toc) {
