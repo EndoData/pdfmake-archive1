@@ -23,7 +23,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/@foliojs-fork/pdfkit/js/pdfkit.es5.js
-var pdfkit_es5 = __webpack_require__(203);
+var pdfkit_es5 = __webpack_require__(3288);
 ;// CONCATENATED MODULE: ./src/PDFDocument.js
 /* provided dependency */ var Buffer = __webpack_require__(4598)["Buffer"];
 
@@ -4426,7 +4426,6 @@ class LayoutBuilder {
       stretchedHeights.forEach(stretchedHeight => {
         const path = stretchedHeight[0];
         const value = stretchedHeight[1];
-        // const nodeHeights = getPathValue(docStructure, stretchedHeightPath);
         updathPathValue(this.docStructureCopy, path, value);
       });
 
@@ -5183,6 +5182,8 @@ class LayoutBuilder {
           row.forEach((cell, cellI) => {
             const colWidth = node.table.widths[cellI]._calcWidth;
             let cellHeight = node.table.rowsHeight[rowI].height;
+
+            //manage row span
             if (cell.rowSpan != null && cell.rowSpan > 1) {
               for (let rowSpanI = 1; rowSpanI < cell.rowSpan; rowSpanI++) {
                 cellHeight += node.table.rowsHeight[rowSpanI].height;
@@ -6375,7 +6376,7 @@ class OutputDocument {
 }
 /* harmony default export */ var src_OutputDocument = (OutputDocument);
 // EXTERNAL MODULE: ./node_modules/file-saver/dist/FileSaver.min.js
-var FileSaver_min = __webpack_require__(6924);
+var FileSaver_min = __webpack_require__(6175);
 ;// CONCATENATED MODULE: ./src/browser-extensions/OutputDocumentBrowser.js
 
 
@@ -21858,7 +21859,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 203:
+/***/ 3288:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -60622,7 +60623,7 @@ module.exports = __webpack_require__(5349);
 
 /***/ }),
 
-/***/ 6924:
+/***/ 6175:
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function(a,b){if(true)!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (b),
