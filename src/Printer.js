@@ -286,7 +286,7 @@ function calculatePageHeight(pages, margins) {
 		return top + height;
 	}
 
-	let fixedMargins = normalizePageMargin(margins || 40);
+	let fixedMargins = normalizePageMargin(margins != null ? margins : 40);
 	let height = fixedMargins.top;
 
 	pages.forEach(page => {

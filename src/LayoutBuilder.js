@@ -196,14 +196,16 @@ class LayoutBuilder {
 		}
 
 		//check if stretch is needed and update heights
-		const stretchedHeightPaths = this.updateTableWithStretchedHeights(docStructure);
-		if (stretchedHeightPaths.length) {
+		const stretchedHeights = this.updateTableWithStretchedHeights(docStructure);
+		if (stretchedHeights.length) {
 			//pre process the structure copy
 			this.docStructureCopy = this.docPreprocessor.preprocessDocument(this.docStructureCopy);
 			//updates stretched heights on structure copy
-			stretchedHeightPaths.forEach(stretchedHeightPath => {
-				const nodeHeights = getPathValue(docStructure, stretchedHeightPath);
-				updathPathValue(this.docStructureCopy, stretchedHeightPath, nodeHeights)
+			stretchedHeights.forEach(stretchedHeight => {
+				const path = stretchedHeight[0];
+				const value = stretchedHeight[1];
+				// const nodeHeights = getPathValue(docStructure, stretchedHeightPath);
+				updathPathValue(this.docStructureCopy, path, value)
 			});
 
 			//generate the layout doc again with structure copy
@@ -1000,7 +1002,7 @@ class LayoutBuilder {
 	}
 
 	updateTableWithStretchedHeights(node) {
-		const stretchedHeightPaths = [];
+		const updatesProperties = [];
 		const concatPath = (root, relative) => root != undefined ? (root + '.' + relative) : relative;
 		const browseTheStructure = (node, parentHeight, parentWidth, path) => {
 			if (node.stack) {
@@ -1015,22 +1017,22 @@ class LayoutBuilder {
 				const stretchedHeights = Array.isArray(node.table.heights) && node.table.heights.filter(h => h === "*").length;
 				if (stretchedHeights) {
 					if (parentHeight && isNumber(parentHeight)) {
-						stretchedHeightPaths.push(concatPath(path, 'table.heights'));
-						const fixedHeights = node.table.heights.reduce((previousValue, h) => h !== '*' ? previousValue + h : previousValue, 0);
+						const fixedHeights = node.table.heights.reduce((previousValue, h, rowI) => h !== '*' ? previousValue + node.table.rowsHeight[rowI].height : previousValue, 0);
 						let stretchedHeight = (parentHeight - fixedHeights) / stretchedHeights;
 						let rowHeight;
-						// stretchedHeight = stretchedHeight - 4;
 						for (let rowI = 0; rowI < node.table.heights.length; rowI++) {
 							if (node.table.heights[rowI] === '*') {
 								rowHeight = stretchedHeight - node._layout.paddingTop(rowI, node.table) - node._layout.paddingBottom(rowI, node.table);
 								node.table.heights[rowI] = rowHeight;
 								node.table.rowsHeight[rowI].height = rowHeight;
-							}
-							for (let colI = 0; colI < node.table.body[rowI].length; colI++) {
-								node.table.body[rowI][colI].maxHeight = rowHeight;
-								stretchedHeightPaths.push(concatPath(path, 'table.body[' + rowI + '][' + colI + '].maxHeight'));
+
+								for (let colI = 0; colI < node.table.body[rowI].length; colI++) {
+									node.table.body[rowI][colI].maxHeight = rowHeight;
+									updatesProperties.push([concatPath(path, 'table.body[' + rowI + '][' + colI + '].maxHeight'), rowHeight]);
+								}
 							}
 						}
+						updatesProperties.push([concatPath(path, 'table.heights'), node.table.heights]);
 					}
 					else {
 						for (let i = 0; i < node.table.heights.length; i++) {
@@ -1039,10 +1041,18 @@ class LayoutBuilder {
 					}
 				}
 				node.table.body.forEach((row, rowI) => {
-					const rowHeight = node.table.rowsHeight[rowI].height;
 					row.forEach((cell, cellI) => {
 						const colWidth = node.table.widths[cellI]._calcWidth;
-						browseTheStructure(cell, rowHeight, colWidth, concatPath(path, 'table.body[' + rowI + '][' + cellI + ']'))
+						let cellHeight = node.table.rowsHeight[rowI].height;
+
+						//manage row span
+						if(cell.rowSpan != null && cell.rowSpan > 1) {
+							for(let rowSpanI = 1; rowSpanI < cell.rowSpan; rowSpanI++){
+								cellHeight += node.table.rowsHeight[rowSpanI].height
+							}
+						}
+
+						browseTheStructure(cell, cellHeight, colWidth, concatPath(path, 'table.body[' + rowI + '][' + cellI + ']'))
 					});
 				});
 			} else if (node.toc) {
@@ -1057,7 +1067,7 @@ class LayoutBuilder {
 				if (Array.isArray(node.fit) && node.fit[0] === 0 && node.fit[1] === 0) {
 					if (parentWidth && parentHeight) {
 						node.fit = [parentWidth, parentHeight];
-						stretchedHeightPaths.push(concatPath(path, 'fit'));
+						updatesProperties.push([concatPath(path, 'fit'), node.fit]);
 					}
 					else {
 						node.fit = [1, 1];
@@ -1068,7 +1078,7 @@ class LayoutBuilder {
 
 		browseTheStructure(node);
 
-		return stretchedHeightPaths;
+		return updatesProperties;
 	}
 }
 
