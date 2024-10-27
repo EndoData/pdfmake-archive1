@@ -23,7 +23,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/@foliojs-fork/pdfkit/js/pdfkit.es5.js
-var pdfkit_es5 = __webpack_require__(1949);
+var pdfkit_es5 = __webpack_require__(203);
 ;// CONCATENATED MODULE: ./src/PDFDocument.js
 /* provided dependency */ var Buffer = __webpack_require__(4598)["Buffer"];
 
@@ -1152,32 +1152,32 @@ function clone(obj) {
   }
   return clonedObj;
 }
-function get(obj, path) {
-  /**
-   * If the path is a string, convert it to an array
-   * @param {string|Array} path The path
-   * @returns {Array} The path array
-   */
-  var stringToPath = function (path) {
-    // If the path isn't a string, return it
-    if (typeof path !== 'string') return path;
 
-    // Create new array
-    var output = [];
+/**
+ * If the path is a string, convert it to an array
+ * @param {string|Array} path The path
+ * @returns {Array} The path array
+ */
+function stringToPath(path) {
+  // If the path isn't a string, return it
+  if (typeof path !== 'string') return path;
 
-    // Split to an array with dot notation
-    path.split('.').forEach(function (item) {
-      // Split to an array with bracket notation
-      item.split(/\[([^\]]+)\]/g).filter(i => i !== '').forEach(function (key) {
-        // Push to the new array
-        if (key.length > 0) {
-          output.push(key);
-        }
-      });
+  // Create new array
+  var output = [];
+
+  // Split to an array with dot notation
+  path.split('.').forEach(function (item) {
+    // Split to an array with bracket notation
+    item.split(/\[([^\]]+)\]/g).filter(i => i !== '').forEach(function (key) {
+      // Push to the new array
+      if (key.length > 0) {
+        output.push(key);
+      }
     });
-    return output;
-  };
-
+  });
+  return output;
+}
+function getPathValue(obj, path) {
   // Get the path as an array
   path = stringToPath(path);
 
@@ -1191,6 +1191,20 @@ function get(obj, path) {
   return current;
 }
 ;
+function updathPathValue(obj, path, value) {
+  // Get the path as an array
+  path = stringToPath(path);
+  if (path.length) {
+    // Cache the current object
+    var current = obj;
+
+    // For each item in the path, dig into the object
+    for (var i = 0; i < path.length - 1; i++) {
+      current = current[path[i]];
+    }
+    current[path[path.length - 1]] = value;
+  }
+}
 ;// CONCATENATED MODULE: ./src/qrEnc.js
 /*eslint no-unused-vars: ["error", {"args": "none"}]*/
 /*eslint no-redeclare: "off"*/
@@ -4404,19 +4418,21 @@ class LayoutBuilder {
     }
 
     //check if stretch is needed and update heights
-    const stretchedHeightPaths = this.updateTableWithStretchedHeights(docStructure);
-    if (stretchedHeightPaths.length) {
+    const stretchedHeights = this.updateTableWithStretchedHeights(docStructure);
+    if (stretchedHeights.length) {
       //pre process the structure copy
       this.docStructureCopy = this.docPreprocessor.preprocessDocument(this.docStructureCopy);
       //updates stretched heights on structure copy
-      stretchedHeightPaths.forEach(stretchedHeightPath => {
-        const nodeHeights = get(docStructure, stretchedHeightPath);
-        const nodeCopyHeights = get(this.docStructureCopy, stretchedHeightPath);
-        nodeHeights.forEach((v, i) => nodeCopyHeights[i] = v);
+      stretchedHeights.forEach(stretchedHeight => {
+        const path = stretchedHeight[0];
+        const value = stretchedHeight[1];
+        // const nodeHeights = getPathValue(docStructure, stretchedHeightPath);
+        updathPathValue(this.docStructureCopy, path, value);
       });
 
       //generate the layout doc again with structure copy
-      return this.tryLayoutDocument(this.docStructureCopy, pdfDocument, styleDictionary, defaultStyle, background, header, footer, watermark);
+      const res = this.tryLayoutDocument(this.docStructureCopy, pdfDocument, styleDictionary, defaultStyle, background, header, footer, watermark);
+      return res;
     }
     return {
       pages: this.writer.context().pages,
@@ -5127,47 +5143,74 @@ class LayoutBuilder {
     node.positions.push(position);
   }
   updateTableWithStretchedHeights(node) {
-    const stretchedHeightPaths = [];
+    const updatesProperties = [];
     const concatPath = (root, relative) => root != undefined ? root + '.' + relative : relative;
-    const browseTheStructure = (node, parentHeight, path) => {
+    const browseTheStructure = (node, parentHeight, parentWidth, path) => {
       if (node.stack) {
-        node.stack.forEach((item, i) => browseTheStructure(item, node.computedHeight, concatPath(path, 'stack[' + i + ']')));
+        node.stack.forEach((item, i) => browseTheStructure(item, node.stack[i].computedHeight, undefined, concatPath(path, 'stack[' + i + ']')));
       } else if (node.columns) {
-        node.columns.forEach((item, i) => browseTheStructure(item, node.computedHeight, concatPath(path, 'columns[' + i + ']')));
+        node.columns.forEach((item, i) => browseTheStructure(item, node.columns[i].computedHeight, undefined, concatPath(path, 'columns[' + i + ']')));
       } else if (node.ul) {
-        node.ul.forEach((item, i) => browseTheStructure(item, node.computedHeight, concatPath(path, 'ul[' + i + ']')));
+        node.ul.forEach((item, i) => browseTheStructure(item, node.ul[i].computedHeight, undefined, concatPath(path, 'ul[' + i + ']')));
       } else if (node.ol) {
-        node.ol.forEach((item, i) => browseTheStructure(item, node.computedHeight, concatPath(path, 'ol[' + i + ']')));
+        node.ol.forEach((item, i) => browseTheStructure(item, node.ol[i].computedHeight, undefined, concatPath(path, 'ol[' + i + ']')));
       } else if (node.table) {
-        node.table.body.forEach((row, rowI) => {
-          row.forEach((cell, cellI) => browseTheStructure(cell, node.table.rowsHeight[rowI].height, concatPath(path, 'table.body[' + rowI + '][' + cellI + ']')));
-        });
         const stretchedHeights = Array.isArray(node.table.heights) && node.table.heights.filter(h => h === "*").length;
         if (stretchedHeights) {
           if (parentHeight && isNumber(parentHeight)) {
-            stretchedHeightPaths.push(concatPath(path, 'table.heights'));
-            const fixedHeights = node.table.heights.reduce((previousValue, h) => h !== '*' ? previousValue + h : previousValue, 0);
-            const stretchedHeight = (parentHeight - fixedHeights) / stretchedHeights;
-            for (let i = 0; i < node.table.heights.length; i++) {
-              node.table.heights[i] === '*' && (node.table.heights[i] = stretchedHeight);
+            const fixedHeights = node.table.heights.reduce((previousValue, h, rowI) => h !== '*' ? previousValue + node.table.rowsHeight[rowI].height : previousValue, 0);
+            let stretchedHeight = (parentHeight - fixedHeights) / stretchedHeights;
+            let rowHeight;
+            for (let rowI = 0; rowI < node.table.heights.length; rowI++) {
+              if (node.table.heights[rowI] === '*') {
+                rowHeight = stretchedHeight - node._layout.paddingTop(rowI, node.table) - node._layout.paddingBottom(rowI, node.table);
+                node.table.heights[rowI] = rowHeight;
+                node.table.rowsHeight[rowI].height = rowHeight;
+                for (let colI = 0; colI < node.table.body[rowI].length; colI++) {
+                  node.table.body[rowI][colI].maxHeight = rowHeight;
+                  updatesProperties.push([concatPath(path, 'table.body[' + rowI + '][' + colI + '].maxHeight'), rowHeight]);
+                }
+              }
             }
+            updatesProperties.push([concatPath(path, 'table.heights'), node.table.heights]);
           } else {
             for (let i = 0; i < node.table.heights.length; i++) {
               node.table.heights[i] === '*' && (node.table.heights[i] = 'auto');
             }
           }
         }
+        node.table.body.forEach((row, rowI) => {
+          row.forEach((cell, cellI) => {
+            const colWidth = node.table.widths[cellI]._calcWidth;
+            let cellHeight = node.table.rowsHeight[rowI].height;
+            if (cell.rowSpan != null && cell.rowSpan > 1) {
+              for (let rowSpanI = 1; rowSpanI < cell.rowSpan; rowSpanI++) {
+                cellHeight += node.table.rowsHeight[rowSpanI].height;
+              }
+            }
+            browseTheStructure(cell, cellHeight, colWidth, concatPath(path, 'table.body[' + rowI + '][' + cellI + ']'));
+          });
+        });
       } else if (node.toc) {
         if (node.toc.title) {
-          browseTheStructure(node.toc.title, node.computedHeight, concatPath(path, 'toc.title'));
+          browseTheStructure(node.toc.title, node.computedHeight, undefined, concatPath(path, 'toc.title'));
         }
         if (node.toc._table) {
-          browseTheStructure(node.toc._table, node.computedHeight, concatPath(path, 'toc._table'));
+          browseTheStructure(node.toc._table, node.computedHeight, undefined, concatPath(path, 'toc._table'));
+        }
+      } else if (node.image) {
+        if (Array.isArray(node.fit) && node.fit[0] === 0 && node.fit[1] === 0) {
+          if (parentWidth && parentHeight) {
+            node.fit = [parentWidth, parentHeight];
+            updatesProperties.push([concatPath(path, 'fit'), node.fit]);
+          } else {
+            node.fit = [1, 1];
+          }
         }
       }
     };
     browseTheStructure(node);
-    return stretchedHeightPaths;
+    return updatesProperties;
   }
 }
 function decorateNode(node) {
@@ -6190,7 +6233,7 @@ function calculatePageHeight(pages, margins) {
     let height = getItemHeight(item);
     return top + height;
   }
-  let fixedMargins = normalizePageMargin(margins || 40);
+  let fixedMargins = normalizePageMargin(margins != null ? margins : 40);
   let height = fixedMargins.top;
   pages.forEach(page => {
     page.items.forEach(item => {
@@ -6332,7 +6375,7 @@ class OutputDocument {
 }
 /* harmony default export */ var src_OutputDocument = (OutputDocument);
 // EXTERNAL MODULE: ./node_modules/file-saver/dist/FileSaver.min.js
-var FileSaver_min = __webpack_require__(1727);
+var FileSaver_min = __webpack_require__(6924);
 ;// CONCATENATED MODULE: ./src/browser-extensions/OutputDocumentBrowser.js
 
 
@@ -21815,7 +21858,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1949:
+/***/ 203:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -60579,7 +60622,7 @@ module.exports = __webpack_require__(5349);
 
 /***/ }),
 
-/***/ 1727:
+/***/ 6924:
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function(a,b){if(true)!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (b),
