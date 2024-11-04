@@ -5,6 +5,7 @@ import { normalizePageSize, normalizePageMargin } from './PageSize';
 import { tableLayouts } from './tableLayouts';
 import Renderer from './Renderer';
 import { isNumber, isValue } from './helpers/variableType';
+import { convertToDynamicContent } from './helpers/tools';
 
 /**
  * Printer which turns document definition into a pdf
@@ -47,17 +48,31 @@ class PdfPrinter {
 			this.resolveUrls(docDefinition).then(() => {
 				try {
 					docDefinition.version = docDefinition.version || '1.3';
+					docDefinition.subset = docDefinition.subset || undefined;
+					docDefinition.tagged = typeof docDefinition.tagged === 'boolean' ? docDefinition.tagged : false;
+					docDefinition.displayTitle = typeof docDefinition.displayTitle === 'boolean' ? docDefinition.displayTitle : false;
 					docDefinition.compress = typeof docDefinition.compress === 'boolean' ? docDefinition.compress : true;
 					docDefinition.images = docDefinition.images || {};
 					docDefinition.attachments = docDefinition.attachments || {};
 					docDefinition.pageMargins = isValue(docDefinition.pageMargins) ? docDefinition.pageMargins : 40;
 					docDefinition.patterns = docDefinition.patterns || {};
 
+					if (docDefinition.header && typeof docDefinition.header !== 'function') {
+						docDefinition.header = convertToDynamicContent(docDefinition.header);
+					}
+
+					if (docDefinition.footer && typeof docDefinition.footer !== 'function') {
+						docDefinition.footer = convertToDynamicContent(docDefinition.footer);
+					}
+
 					let pageSize = normalizePageSize(docDefinition.pageSize, docDefinition.pageOrientation);
 
 					let pdfOptions = {
 						size: [pageSize.width, pageSize.height],
 						pdfVersion: docDefinition.version,
+						subset: docDefinition.subset,
+						tagged: docDefinition.tagged,
+						displayTitle: docDefinition.displayTitle,
 						compress: docDefinition.compress,
 						userPassword: docDefinition.userPassword,
 						ownerPassword: docDefinition.ownerPassword,
@@ -91,6 +106,7 @@ class PdfPrinter {
 					if (pageSize.height === Infinity) {
 						let pageHeight = calculatePageHeight(pages, docDefinition.pageMargins);
 						this.pdfKitDoc.options.size = [pageSize.width, pageHeight];
+						pageSize.height = pageHeight;
 					}
 
 					const renderer = new Renderer(this.pdfKitDoc, options.progressCallback);

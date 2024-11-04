@@ -38,6 +38,11 @@ export function offsetVector(vector, x, y) {
 	}
 }
 
+export function convertToDynamicContent(staticContent) {
+	return () => // copy to new object
+		JSON.parse(JSON.stringify(staticContent));
+}
+
 export function clone(obj) {
 	// Handle null or undefined values
 	if (obj === null || typeof obj !== 'object') {

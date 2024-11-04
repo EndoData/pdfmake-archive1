@@ -6,30 +6,27 @@ import { EventEmitter } from 'events';
  * It facilitates column divisions and vertical sync
  */
 class DocumentContext extends EventEmitter {
-	constructor(pageSize, pageMargins) {
+	constructor() {
 		super();
 		this.pages = [];
-
-		this.pageMargins = pageMargins;
-
-		this.x = pageMargins.left;
-		this.availableWidth = pageSize.width - pageMargins.left - pageMargins.right;
-		this.availableHeight = 0;
+		this.pageMargins = undefined;
+		this.x = undefined;
+		this.availableWidth = undefined;
+		this.availableHeight = undefined;
 		this.page = -1;
 
 		this.snapshots = [];
 		this.backgroundLength = [];
-
-		this.addPage(pageSize);
 	}
 
-	beginColumnGroup() {
+	beginColumnGroup(marginXTopParent, bottomByPage = {}) {
 		this.snapshots.push({
 			x: this.x,
 			y: this.y,
 			availableHeight: this.availableHeight,
 			availableWidth: this.availableWidth,
 			page: this.page,
+			bottomByPage: bottomByPage ? bottomByPage : {},
 			bottomMost: {
 				x: this.x,
 				y: this.y,
@@ -41,6 +38,23 @@ class DocumentContext extends EventEmitter {
 		});
 
 		this.lastColumnWidth = 0;
+		if (marginXTopParent) {
+			this.marginXTopParent = marginXTopParent;
+		}
+	}
+
+	updateBottomByPage() {
+		const lastSnapshot = this.snapshots[this.snapshots.length - 1];
+		const lastPage = this.page;
+		let previousBottom = -Number.MIN_VALUE;
+		if (lastSnapshot.bottomByPage[lastPage]) {
+			previousBottom = lastSnapshot.bottomByPage[lastPage];
+		}
+		lastSnapshot.bottomByPage[lastPage] = Math.max(previousBottom, this.y);
+	}
+
+	resetMarginXTopParent() {
+		this.marginXTopParent = null;
 	}
 
 	beginColumn(width, offset, endingCell) {
@@ -68,7 +82,7 @@ class DocumentContext extends EventEmitter {
 	markEnding(endingCell, originalXOffset, discountY) {
 		this.page = endingCell._columnEndingContext.page;
 		this.x = endingCell._columnEndingContext.x + originalXOffset;
-    this.y = endingCell._columnEndingContext.y - discountY;
+		this.y = endingCell._columnEndingContext.y - discountY;
 		this.availableWidth = endingCell._columnEndingContext.availableWidth;
 		this.availableHeight = endingCell._columnEndingContext.availableHeight;
 		this.lastColumnWidth = endingCell._columnEndingContext.lastColumnWidth;
@@ -111,6 +125,7 @@ class DocumentContext extends EventEmitter {
 			this.availableHeight -= (y - saved.bottomMost.y);
 		}
 		this.lastColumnWidth = saved.lastColumnWidth;
+		return saved.bottomByPage;
 	}
 
 	addMargin(left, right) {
@@ -128,14 +143,19 @@ class DocumentContext extends EventEmitter {
 	initializePage() {
 		this.y = this.pageMargins.top;
 		this.availableHeight = this.getCurrentPage().pageSize.height - this.pageMargins.top - this.pageMargins.bottom;
-		this.pageSnapshot().availableWidth = this.getCurrentPage().pageSize.width - this.pageMargins.left - this.pageMargins.right;
+		const { pageCtx, isSnapshot } = this.pageSnapshot();
+		pageCtx.availableWidth = this.getCurrentPage().pageSize.width - this.pageMargins.left - this.pageMargins.right;
+		if (isSnapshot && this.marginXTopParent) {
+			pageCtx.availableWidth -= this.marginXTopParent[0];
+			pageCtx.availableWidth -= this.marginXTopParent[1];
+		}
 	}
 
 	pageSnapshot() {
 		if (this.snapshots[0]) {
-			return this.snapshots[0];
+			return { pageCtx: this.snapshots[0], isSnapshot: true };
 		} else {
-			return this;
+			return { pageCtx: this, isSnapshot: false };
 		}
 	}
 
@@ -220,8 +240,14 @@ class DocumentContext extends EventEmitter {
 		};
 	}
 
-	addPage(pageSize) {
-		let page = { items: [], pageSize: pageSize };
+	addPage(pageSize, pageMargin = null) {
+		if (pageMargin !== null) {
+			this.pageMargins = pageMargin;
+			this.x = pageMargin.left;
+			this.availableWidth = pageSize.width - pageMargin.left - pageMargin.right;
+		}
+
+		let page = { items: [], pageSize: pageSize, pageMargins: this.pageMargins };
 		this.pages.push(page);
 		this.backgroundLength.push(0);
 		this.page = this.pages.length - 1;
