@@ -65,7 +65,18 @@ class PdfPrinter {
 						docDefinition.footer = convertToDynamicContent(docDefinition.footer);
 					}
 
-					let pageSize = normalizePageSize(docDefinition.pageSize, docDefinition.pageOrientation);
+					let pageSize;
+					if(docDefinition.pageSize.height === 'auto') {
+					  docDefinition.pageSize.height = Infinity;
+					  pageSize = {
+						width: docDefinition.pageSize.width,
+						height: Infinity,
+						orientation: docDefinition.pageOrientation
+					  };
+					}
+					else {
+						pageSize = normalizePageSize(docDefinition.pageSize, docDefinition.pageOrientation);
+					}
 
 					let pdfOptions = {
 						size: [pageSize.width, pageSize.height],

@@ -1,4 +1,4 @@
-/*! @SirFull/pdfmake v0.3.0-beta.12, @license MIT, @link http://pdfmake.org */
+/*! @SirFull/pdfmake v0.3.0-beta.13, @license MIT, @link http://pdfmake.org */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();
@@ -23,7 +23,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 // EXTERNAL MODULE: ./node_modules/@foliojs-fork/pdfkit/js/pdfkit.es.js
-var pdfkit_es = __webpack_require__(5696);
+var pdfkit_es = __webpack_require__(2610);
 ;// ./src/PDFDocument.js
 /* provided dependency */ var Buffer = __webpack_require__(4598)["Buffer"];
 
@@ -6285,7 +6285,17 @@ class PdfPrinter {
           if (docDefinition.footer && typeof docDefinition.footer !== 'function') {
             docDefinition.footer = convertToDynamicContent(docDefinition.footer);
           }
-          let pageSize = normalizePageSize(docDefinition.pageSize, docDefinition.pageOrientation);
+          let pageSize;
+          if (docDefinition.pageSize.height === 'auto') {
+            docDefinition.pageSize.height = Infinity;
+            pageSize = {
+              width: docDefinition.pageSize.width,
+              height: Infinity,
+              orientation: docDefinition.pageOrientation
+            };
+          } else {
+            pageSize = normalizePageSize(docDefinition.pageSize, docDefinition.pageOrientation);
+          }
           let pdfOptions = {
             size: [pageSize.width, pageSize.height],
             pdfVersion: docDefinition.version,
@@ -6651,7 +6661,7 @@ class OutputDocument {
 }
 /* harmony default export */ var src_OutputDocument = (OutputDocument);
 // EXTERNAL MODULE: ./node_modules/file-saver/dist/FileSaver.min.js
-var FileSaver_min = __webpack_require__(1793);
+var FileSaver_min = __webpack_require__(3164);
 ;// ./src/browser-extensions/OutputDocumentBrowser.js
 
 
@@ -54873,7 +54883,7 @@ module.exports = __webpack_require__(5349);
 
 /***/ }),
 
-/***/ 1793:
+/***/ 3164:
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function(a,b){if(true)!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (b),
@@ -67547,7 +67557,7 @@ module.exports = LineBreaker;
 
 /***/ }),
 
-/***/ 5696:
+/***/ 2610:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
