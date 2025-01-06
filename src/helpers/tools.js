@@ -38,6 +38,11 @@ export function offsetVector(vector, x, y) {
 	}
 }
 
+export function convertToDynamicContent(staticContent) {
+	return () => // copy to new object
+		JSON.parse(JSON.stringify(staticContent));
+}
+
 export function clone(obj) {
 	// Handle null or undefined values
 	if (obj === null || typeof obj !== 'object') {
@@ -70,38 +75,38 @@ export function clone(obj) {
 	return clonedObj;
 }
 
-export function get(obj, path) {
-	/**
-	 * If the path is a string, convert it to an array
-	 * @param {string|Array} path The path
-	 * @returns {Array} The path array
-	 */
-	var stringToPath = function (path) {
+/**
+ * If the path is a string, convert it to an array
+ * @param {string|Array} path The path
+ * @returns {Array} The path array
+ */
+function stringToPath(path) {
 
-		// If the path isn't a string, return it
-		if (typeof path !== 'string') return path;
+	// If the path isn't a string, return it
+	if (typeof path !== 'string') return path;
 
-		// Create new array
-		var output = [];
+	// Create new array
+	var output = [];
 
-		// Split to an array with dot notation
-		path.split('.').forEach(function (item) {
+	// Split to an array with dot notation
+	path.split('.').forEach(function (item) {
 
-			// Split to an array with bracket notation
-			item.split(/\[([^\]]+)\]/g).filter(i => i !== '').forEach(function (key) {
+		// Split to an array with bracket notation
+		item.split(/\[([^\]]+)\]/g).filter(i => i !== '').forEach(function (key) {
 
-				// Push to the new array
-				if (key.length > 0) {
-					output.push(key);
-				}
-
-			});
+			// Push to the new array
+			if (key.length > 0) {
+				output.push(key);
+			}
 
 		});
 
-		return output;
-	};
+	});
 
+	return output;
+}
+
+export function getPathValue(obj, path) {
 	// Get the path as an array
 	path = stringToPath(path);
 
@@ -115,3 +120,21 @@ export function get(obj, path) {
 
 	return current;
 };
+
+export function updathPathValue(obj, path, value) {
+	// Get the path as an array
+	path = stringToPath(path);
+
+	if (path.length) {
+
+		// Cache the current object
+		var current = obj;
+
+		// For each item in the path, dig into the object
+		for (var i = 0; i < path.length - 1; i++) {
+			current = current[path[i]];
+		}
+
+		current[path[path.length - 1]] = value;
+	}
+}
